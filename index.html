@@ -19,6 +19,8 @@
             font-family: 'Inter', sans-serif;
             touch-action: manipulation;
             overflow-x: hidden;
+            margin: 0;
+            padding: 0;
         }
 
         /* Smooth Animations */
@@ -85,18 +87,20 @@
 </head>
 <body>
     <div id="root"></div>
+    
+    <!-- Entry point script to mount React application -->
+    <script type="module" src="./index.tsx"></script>
+
     <script>
+        // Service Worker registration with enhanced error handling
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                // Register using a simple relative path. 
-                // The browser automatically resolves this against the current page's origin.
                 navigator.serviceWorker.register('./service-worker.js')
                     .then(reg => {
-                        console.log('SW Registered successfully:', reg.scope);
+                        console.log('GhostComm SW Active:', reg.scope);
                     })
                     .catch(err => {
-                        // Silently handle cases where SW might fail (e.g., non-secure origins or sandboxes)
-                        console.warn('Service Worker registration skipped or failed:', err);
+                        console.warn('Offline mode unavailable:', err);
                     });
             });
         }
