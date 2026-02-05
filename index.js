@@ -10,33 +10,20 @@ import {
 const html = htm.bind(React.createElement);
 
 // --- ENCODING ALPHABET GENERATION ---
-/**
- * Generates an expanded 15-bit alphabet (32,768 characters).
- * Includes ASCII (excluding protocol separator ':'), Latin, Greek, Cyrillic, and stable CJK blocks.
- */
 const generateAlphabet = () => {
   let chars = "";
-  
-  // 1. All printable ASCII (33 to 126) EXCLUDING ':' (58)
+  // ASCII (excluding :)
   for (let i = 33; i <= 126; i++) {
     if (i !== 58) chars += String.fromCharCode(i);
   }
-  
-  // 2. Latin-1 Supplement (Standard European symbols)
+  // Latin, Greek, Cyrillic blocks for density
   for (let i = 161; i <= 255; i++) chars += String.fromCharCode(i);
-
-  // 3. Greek and Coptic
   for (let i = 0x0370; i <= 0x03FF; i++) chars += String.fromCharCode(i);
-
-  // 4. Cyrillic (Stable across all platforms)
   for (let i = 0x0400; i <= 0x04FF; i++) chars += String.fromCharCode(i);
-
-  // 5. Fill remaining slots with stable CJK Unified Ideographs
   let currentCJK = 0x4E00;
   while (chars.length < 32768) {
     chars += String.fromCharCode(currentCJK++);
   }
-  
   return chars.substring(0, 32768);
 };
 
@@ -187,7 +174,7 @@ const extractChunks = (text) => {
 
 const EncodingView = ({ persistentResult, setPersistentResult, persistentFile, setPersistentFile }) => {
   const [file, setFile] = useState(persistentFile);
-  const [state, setState] = useState({ isProcessing: false, result: persistentResult, error: null });
+  const [state, setState] = useState({ isProcessing: false, progress: 0, result: persistentResult, error: null });
   const [isCopied, setIsCopied] = useState(false);
   const [showRaw, setShowRaw] = useState(false);
   const fileInputRef = useRef(null);
@@ -196,16 +183,28 @@ const EncodingView = ({ persistentResult, setPersistentResult, persistentFile, s
   useEffect(() => setPersistentResult(state.result), [state.result]);
 
   const handleProcess = async () => {
-    setState(s => ({ ...s, isProcessing: true, error: null }));
+    setState(s => ({ ...s, isProcessing: true, progress: 5, error: null }));
     try {
       const type = file.type.startsWith('audio/') ? MediaType.AUDIO : MediaType.IMAGE;
+      
+      // Phase 1: Preparation (10-30%)
+      setState(s => ({ ...s, progress: 15 }));
       const raw = await processMedia(file, type);
+      setState(s => ({ ...s, progress: 30 }));
+      
+      // Phase 2: Compression (30-60%)
       const compressed = await compressBytes(raw);
+      setState(s => ({ ...s, progress: 60 }));
+      
+      // Phase 3: Encoding (60-90%)
       const encoded = encodeBase32768(compressed);
+      setState(s => ({ ...s, progress: 90 }));
+      
+      // Phase 4: Finalizing (90-100%)
       const volumes = createVolumes(type, encoded, 15000);
-      setState({ isProcessing: false, result: volumes, error: null });
+      setState({ isProcessing: false, progress: 100, result: volumes, error: null });
     } catch (e) {
-      setState({ isProcessing: false, result: null, error: "Encoding Failed" });
+      setState({ isProcessing: false, progress: 0, result: null, error: "Encoding Failed" });
     }
   };
 
@@ -224,10 +223,22 @@ const EncodingView = ({ persistentResult, setPersistentResult, persistentFile, s
           </div>
         ` : !state.result ? html`
           <div className="space-y-6">
-            <div className="aspect-square bg-black rounded-2xl overflow-hidden border border-white/5 flex items-center justify-center shadow-inner">
+            <div className="aspect-square bg-black rounded-2xl overflow-hidden border border-white/5 flex items-center justify-center shadow-inner relative">
               ${file.type.startsWith('image/') ? html`<img src=${URL.createObjectURL(file)} className="w-full h-full object-contain" />` : html`<${Volume2} size=${48} className="text-blue-500" />`}
+              ${state.isProcessing && html`
+                <div className="absolute inset-0 bg-black/70 backdrop-blur-md flex flex-col items-center justify-center p-8 transition-all animate-fade-in z-20">
+                  <${Loader2} className="animate-spin text-blue-500 mb-6" size=${40} />
+                  <div className="w-full max-w-[200px] bg-zinc-800 h-1.5 rounded-full overflow-hidden mb-3 border border-white/5">
+                    <div 
+                      className="h-full bg-blue-500 transition-all duration-500 ease-out shadow-[0_0_10px_rgba(59,130,246,0.6)]" 
+                      style=${{ width: `${state.progress}%` }} 
+                    />
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-[0.3em] text-blue-400">Stream Processing: ${state.progress}%</span>
+                </div>
+              `}
             </div>
-            <button onClick=${handleProcess} disabled=${state.isProcessing} className="w-full py-5 bg-blue-600 rounded-2xl font-black text-xs uppercase tracking-widest tap-scale flex items-center justify-center gap-2 shadow-xl shadow-blue-900/20">
+            <button onClick=${handleProcess} disabled=${state.isProcessing} className="w-full py-5 bg-blue-600 rounded-2xl font-black text-xs uppercase tracking-widest tap-scale flex items-center justify-center gap-2 shadow-xl shadow-blue-900/20 disabled:opacity-50">
               ${state.isProcessing ? html`<${Loader2} className="animate-spin" />` : html`<${Zap} size=${18} fill="currentColor" />`}
               ${state.isProcessing ? "Processing..." : "Encode Data"}
             </button>
@@ -333,7 +344,7 @@ const App = () => {
           <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center rotate-3 shadow-lg shadow-blue-900/40"><${Shield} size=${20} /></div>
           <div>
             <h1 className="text-sm font-black uppercase tracking-tighter leading-none">Ghost<span className="text-blue-500">Comm</span></h1>
-            <span className="text-[7px] font-black opacity-30 uppercase tracking-[0.4em]">Protocol Stable v1.8</span>
+            <span className="text-[7px] font-black opacity-30 uppercase tracking-[0.4em]">Protocol Stable v1.8.2</span>
           </div>
         </div>
         <div className="w-8 h-8 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center"><${Settings} size=${14} className="text-zinc-500" /></div>
@@ -345,7 +356,7 @@ const App = () => {
           <button onClick=${() => setTab('decode')} className=${`flex-1 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'decode' ? 'bg-zinc-800 text-white shadow-xl' : 'text-zinc-500'}`}>Decode</button>
         </div>
 
-        <div className="animate-fade-in">
+        <div className="animate-fade-in relative">
           ${tab === 'encode' ? html`
             <${EncodingView} 
               persistentResult=${encodedResult} 
