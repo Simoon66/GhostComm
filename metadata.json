@@ -1,0 +1,8 @@
+{
+  "name": "GhostComm: Offline Media Messenger",
+  "description": "An ultra-secure, offline-first media encoder that converts images and audio into compressed text chunks for transmission via low-bandwidth offline messengers.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
