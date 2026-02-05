@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="manifest.json">
-    <title>GhostComm</title>
+    <title>GhostComm | Offline Messenger</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@500&display=swap');
@@ -17,54 +17,11 @@
             background-color: #050505;
             color: #e5e5e5;
             font-family: 'Inter', sans-serif;
-            touch-action: manipulation;
-            overflow-x: hidden;
             margin: 0;
             padding: 0;
+            overflow-x: hidden;
         }
 
-        /* Smooth Animations */
-        @keyframes slideUp {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        @keyframes scaleIn {
-            from { transform: scale(0.95); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
-        }
-
-        .animate-smooth-in {
-            animation: scaleIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-        }
-
-        .animate-slide-up {
-            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-
-        .animate-fade-in {
-            animation: fadeIn 0.3s ease-out forwards;
-        }
-
-        /* Improved Interactivity */
-        .tap-scale {
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .tap-scale:active {
-            transform: scale(0.92);
-        }
-
-        /* Glassmorphism subtle */
         .glass {
             background: rgba(255, 255, 255, 0.03);
             backdrop-filter: blur(12px);
@@ -72,36 +29,39 @@
         }
 
         ::-webkit-scrollbar { width: 0px; }
+        
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        .tap-scale:active { transform: scale(0.95); }
+        .tap-scale { transition: transform 0.2s; }
     </style>
-<script type="importmap">
+    <script type="importmap">
 {
   "imports": {
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
-    "react-dom": "https://esm.sh/react-dom@^19.2.4"
+    "react": "https://esm.sh/react@19.0.0",
+    "react-dom": "https://esm.sh/react-dom@19.0.0/client",
+    "lucide-react": "https://esm.sh/lucide-react@0.460.0",
+    "react/": "https://esm.sh/react@^19.2.4/"
   }
 }
 </script>
 </head>
 <body>
     <div id="root"></div>
-    
-    <!-- Entry point script to mount React application -->
+
+    <!-- Script loading for browser compatibility -->
     <script type="module" src="./index.tsx"></script>
 
     <script>
-        // Service Worker registration with enhanced error handling
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./service-worker.js')
-                    .then(reg => {
-                        console.log('GhostComm SW Active:', reg.scope);
-                    })
-                    .catch(err => {
-                        console.warn('Offline mode unavailable:', err);
-                    });
+                    .then(reg => console.log('GhostComm Offline Active'))
+                    .catch(err => console.warn('Offline mode fail:', err));
             });
         }
     </script>
