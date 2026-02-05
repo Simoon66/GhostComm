@@ -87,7 +87,18 @@
     <div id="root"></div>
     <script>
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./service-worker.js');
+            window.addEventListener('load', () => {
+                // Register using a simple relative path. 
+                // The browser automatically resolves this against the current page's origin.
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(reg => {
+                        console.log('SW Registered successfully:', reg.scope);
+                    })
+                    .catch(err => {
+                        // Silently handle cases where SW might fail (e.g., non-secure origins or sandboxes)
+                        console.warn('Service Worker registration skipped or failed:', err);
+                    });
+            });
         }
     </script>
 </body>
