@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import htm from 'htm';
@@ -71,17 +70,17 @@ const decodeBase32768 = (str) => {
   return fullData.slice(4, 4 + originalLength);
 };
 
-// --- TURBO MEDIA ENGINES ---
+// --- TURBO MEDIA ENGINES (MEDIUM QUALITY UPGRADE) ---
 const turboImage = async (file) => {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      const scale = Math.min(200 / img.width, 1);
+      const scale = Math.min(480 / img.width, 1); // Increased resolution to 480p
       canvas.width = img.width * scale;
       canvas.height = img.height * scale;
       canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob(async b => resolve(new Uint8Array(await b.arrayBuffer())), 'image/webp', 0.1);
+      canvas.toBlob(async b => resolve(new Uint8Array(await b.arrayBuffer())), 'image/webp', 0.4); // Quality 0.1 -> 0.4
     };
     img.src = URL.createObjectURL(file);
   });
@@ -92,20 +91,19 @@ const turboVideo = async (file, onProgress) => {
     const video = document.createElement('video');
     const sourceUrl = URL.createObjectURL(file);
     video.src = sourceUrl;
-    video.muted = false; // Must be unmuted to capture audio stream properly
-    video.volume = 0;    // Set volume to 0 so it doesn't play out loud during encoding
+    video.muted = false; 
+    video.volume = 0;    
     video.playsInline = true;
     
     video.onloadedmetadata = () => {
       const canvas = document.createElement('canvas');
-      canvas.width = 120;
-      canvas.height = (video.videoHeight / video.videoWidth) * 120;
+      const targetWidth = 240; // Increased from 120 -> 240
+      canvas.width = targetWidth;
+      canvas.height = (video.videoHeight / video.videoWidth) * targetWidth;
       const ctx = canvas.getContext('2d');
       
-      // Get video track from canvas
-      const canvasStream = canvas.captureStream(6);
+      const canvasStream = canvas.captureStream(10); // 6fps -> 10fps for smoother motion
       
-      // Get audio tracks from video element
       let combinedStream;
       try {
         const videoStream = video.captureStream ? video.captureStream() : video.mozCaptureStream();
@@ -114,14 +112,14 @@ const turboVideo = async (file, onProgress) => {
           ...videoStream.getAudioTracks()
         ]);
       } catch (e) {
-        console.warn("Audio track capture failed, proceeding with video only", e);
+        console.warn("Audio capture fallback", e);
         combinedStream = canvasStream;
       }
 
       const recorder = new MediaRecorder(combinedStream, { 
         mimeType: 'video/webm;codecs=vp8,opus', 
-        videoBitsPerSecond: 20000,
-        audioBitsPerSecond: 8000 // Highly compressed audio for transmission
+        videoBitsPerSecond: 64000, // 20kbps -> 64kbps for better detail
+        audioBitsPerSecond: 16000 // 8kbps -> 16kbps for clearer speech
       });
       
       const chunks = [];
@@ -152,7 +150,8 @@ const turboVideo = async (file, onProgress) => {
 const turboAudio = async (file) => {
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   const decoded = await audioCtx.decodeAudioData(await file.arrayBuffer());
-  const offlineCtx = new OfflineAudioContext(1, Math.min(decoded.duration, 15) * 4000, 4000);
+  const sampleRate = 12000; // 4kHz -> 12kHz for much better fidelity
+  const offlineCtx = new OfflineAudioContext(1, Math.min(decoded.duration, 15) * sampleRate, sampleRate);
   const source = offlineCtx.createBufferSource();
   source.buffer = decoded;
   source.connect(offlineCtx.destination);
@@ -243,7 +242,7 @@ const EncodingView = ({ persistentResult, setPersistentResult, persistentFile, s
             </div>
             <div className="text-center space-y-1">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Ghost Uplink</p>
-              <p className="text-[9px] font-medium text-zinc-500 uppercase tracking-widest">Select asset for conversion</p>
+              <p className="text-[9px] font-medium text-zinc-500 uppercase tracking-widest text-balance">Select asset for conversion</p>
             </div>
             <${ActionButton} onClick=${() => fileRef.current.click()} className="w-full">
                Pick File <${ChevronRight} size=${12} />
